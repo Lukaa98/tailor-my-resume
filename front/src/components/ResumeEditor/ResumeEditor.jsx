@@ -1,11 +1,16 @@
 import { useState } from 'react';
-import { Box, Button, Stack } from '@mui/material';
+import {
+  Box,
+  Button,
+  Chip,
+  Paper,
+  Stack,
+  Typography,
+} from '@mui/material';
 import LosslessResumeViewer from './LosslessResumeViewer';
 import {
-  parseResumeFile,
-  parseResumeText,
-  analyzeResume,
-  exportResumeToPDF,
+  parseResume,
+  exportResumePdf,
 } from '../../services/resumeService';
 
 export default function ResumeEditor() {
@@ -13,33 +18,71 @@ export default function ResumeEditor() {
   const [semantic, setSemantic] = useState(null);
   const [lineMap, setLineMap] = useState([]);
   const [highlightedIds, setHighlightedIds] = useState([]);
+  const [activeSectionIndex, setActiveSectionIndex] = useState(null);
+  const [error, setError] = useState('');
+
+  const sections = semantic?.sections || [];
+  const parserName = semantic?.parser || '';
+
+  const sectionSummaries = sections.map((section, index) => ({
+    ...section,
+    index,
+    label: section.header || formatSectionType(section.type),
+  }));
 
   const handleUpload = async (file) => {
-    console.log('Uploading resume…');
+    if (!file) return;
 
-    const layoutResult = await parseResumeFile(file);
-    console.log('Layout parsed');
-    setLayout(layoutResult);
+    setError('');
+    setLayout(null);
+    setSemantic(null);
+    setLineMap([]);
+    setHighlightedIds([]);
+    setActiveSectionIndex(null);
 
-    const textResult = await parseResumeText(layoutResult);
-    console.log('Text extracted');
+    console.log('Uploading resume...');
 
-    const analysis = await analyzeResume(textResult);
-    console.log('Semantic analysis complete');
-
-    setSemantic(analysis.semantic);
-    setLineMap(analysis.line_map);
+    try {
+      const parsedResume = await parseResume(file);
+      console.log('Resume parsed');
+      setLayout(parsedResume.layout);
+      setLineMap(parsedResume.lines?.line_map || []);
+      setSemantic(parsedResume.sections || null);
+    } catch (err) {
+      console.error(err);
+      setLayout(null);
+      setError(err.message || 'Resume parsing failed');
+    }
   };
 
-  const highlightSection = (index) => {
-    if (!semantic) return;
+  const getSectionIds = (section) =>
+    lineMap.slice(section.start_line, section.end_line + 1).flat();
 
-    const section = semantic.sections[index];
-    const ids = lineMap
-      .slice(section.start_line, section.end_line + 1)
-      .flat();
+  const previewSection = (index) => {
+    const section = sections[index];
+    if (!section) return;
+    setHighlightedIds(getSectionIds(section));
+  };
 
-    setHighlightedIds(ids);
+  const clearPreview = () => {
+    if (activeSectionIndex === null) {
+      setHighlightedIds([]);
+      return;
+    }
+
+    const activeSection = sections[activeSectionIndex];
+    setHighlightedIds(activeSection ? getSectionIds(activeSection) : []);
+  };
+
+  const toggleSectionSelection = (index) => {
+    if (activeSectionIndex === index) {
+      setActiveSectionIndex(null);
+      setHighlightedIds([]);
+      return;
+    }
+
+    setActiveSectionIndex(index);
+    previewSection(index);
   };
 
   return (
@@ -59,31 +102,102 @@ export default function ResumeEditor() {
           variant="contained"
           color="success"
           disabled={!layout}
-          onClick={() => exportResumeToPDF(layout)}
+          onClick={() => exportResumePdf(layout)}
         >
           Export PDF
         </Button>
+
+        {parserName && (
+          <Chip
+            label={`Parser: ${parserName}`}
+            color="primary"
+            variant="outlined"
+          />
+        )}
       </Stack>
 
-      <Stack direction="row" spacing={1} mb={2}>
-        {semantic?.sections.map((s, i) => (
-          <Button
-            key={`${s.type}-${i}`}
-            size="small"
-            onMouseEnter={() => highlightSection(i)}
-            onMouseLeave={() => setHighlightedIds([])}
-          >
-            {s.type}
-          </Button>
-        ))}
-      </Stack>
-
-      {layout && (
-        <LosslessResumeViewer
-          layout={layout}
-          highlightedIds={highlightedIds}
-        />
+      {error && (
+        <Box sx={{ color: 'error.main', mb: 2 }}>
+          {error}
+        </Box>
       )}
+
+      <Stack
+        direction={{ xs: 'column', lg: 'row' }}
+        spacing={3}
+        alignItems="flex-start"
+      >
+        <Paper
+          elevation={2}
+          sx={{
+            width: { xs: '100%', lg: 340 },
+            p: 2,
+            position: { lg: 'sticky' },
+            top: { lg: 24 },
+            maxHeight: { lg: 'calc(100vh - 48px)' },
+            overflowY: 'auto',
+          }}
+        >
+          <Typography variant="h6" gutterBottom>
+            Parsed Sections
+          </Typography>
+
+          {!sectionSummaries.length && (
+            <Typography variant="body2" color="text.secondary">
+              Upload a resume to inspect detected sections.
+            </Typography>
+          )}
+
+          <Stack spacing={1.5}>
+            {sectionSummaries.map((section) => (
+              <Paper
+                key={`${section.type}-${section.index}`}
+                variant="outlined"
+                sx={{
+                  p: 1.5,
+                  cursor: 'pointer',
+                  borderColor:
+                    activeSectionIndex === section.index
+                      ? 'primary.main'
+                      : 'divider',
+                  bgcolor:
+                    activeSectionIndex === section.index
+                      ? 'rgba(25, 118, 210, 0.08)'
+                      : 'background.paper',
+                }}
+                onMouseEnter={() => previewSection(section.index)}
+                onMouseLeave={clearPreview}
+                onClick={() => toggleSectionSelection(section.index)}
+              >
+                <Typography variant="subtitle2">
+                  {section.label}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {formatSectionType(section.type)} | lines {section.start_line}-
+                  {section.end_line}
+                </Typography>
+              </Paper>
+            ))}
+          </Stack>
+        </Paper>
+
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          {layout && (
+            <LosslessResumeViewer
+              layout={layout}
+              highlightedIds={highlightedIds}
+            />
+          )}
+        </Box>
+      </Stack>
     </Box>
   );
+}
+
+function formatSectionType(type = '') {
+  return type
+    .split('_')
+    .filter(Boolean)
+    .map((word) => word[0].toUpperCase() + word.slice(1))
+    .join(' ');
 }

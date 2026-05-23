@@ -40,15 +40,6 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Require deployed frontend API URL
-        env:
-          REACT_APP_API_URL: ${{ vars.REACT_APP_API_URL }}
-        run: |
-          if [ -z "$REACT_APP_API_URL" ]; then
-            echo "Repository variable REACT_APP_API_URL is required for Pages deploys."
-            exit 1
-          fi
-
       - name: Build frontend
         env:
           REACT_APP_API_URL: ${{ vars.REACT_APP_API_URL }}

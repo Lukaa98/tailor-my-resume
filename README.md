@@ -74,8 +74,8 @@ https://tailor-my-resume-api.onrender.com
 Frontend API behavior:
 
 - local browser on `localhost` uses `http://localhost:8081`
-- deployed frontend must provide `REACT_APP_API_URL`
-- `REACT_APP_API_URL` should point to the deployed backend
+- deployed frontend falls back to `https://tailor-my-resume-api.onrender.com`
+- `REACT_APP_API_URL` can override the API URL when needed
 
 ## Main API
 

@@ -1,22 +1,18 @@
+const PROD_API_URL = 'https://tailor-my-resume-api.onrender.com';
+
 function resolveApiUrl() {
+  const configuredUrl = process.env.REACT_APP_API_URL?.trim();
+  if (configuredUrl) {
+    return configuredUrl;
+  }
+
   const hostname = window.location.hostname;
   const isLocalhost =
     hostname === 'localhost' ||
     hostname === '127.0.0.1' ||
     hostname === '0.0.0.0';
 
-  if (isLocalhost) {
-    return 'http://localhost:8081';
-  }
-
-  const configuredUrl = process.env.REACT_APP_API_URL?.trim();
-  if (configuredUrl) {
-    return configuredUrl;
-  }
-
-  throw new Error(
-    'REACT_APP_API_URL is required for non-local frontend builds.'
-  );
+  return isLocalhost ? 'http://localhost:8081' : PROD_API_URL;
 }
 
 const API_URL = resolveApiUrl();

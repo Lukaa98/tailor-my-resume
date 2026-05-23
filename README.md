@@ -65,11 +65,17 @@ Before using the Pages workflow, set this repository secret:
 
 - `REACT_APP_API_URL`
 
-This should point to your deployed backend URL, for example:
+This can point to your deployed backend URL, for example:
 
 ```text
 https://tailor-my-resume-api.onrender.com
 ```
+
+Frontend API behavior:
+
+- local browser on `localhost` uses `http://localhost:8081`
+- deployed frontend must provide `REACT_APP_API_URL`
+- `REACT_APP_API_URL` should point to the deployed backend
 
 ## Main API
 

@@ -57,13 +57,7 @@ Frontend URL:
 
 Workflows:
 
-- `.github/workflows/ci.yml`
 - `.github/workflows/pages.yml`
-
-`ci.yml` runs:
-
-- backend Python compile checks
-- frontend production build
 
 `pages.yml` deploys the frontend to GitHub Pages.
 

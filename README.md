@@ -35,6 +35,10 @@ Backend URL:
 
 - [http://127.0.0.1:8081](http://127.0.0.1:8081)
 
+Production backend:
+
+- [https://tailor-my-resume-api.onrender.com/](https://tailor-my-resume-api.onrender.com/)
+
 ### Frontend
 
 Git Bash:
@@ -48,6 +52,30 @@ npm start
 Frontend URL:
 
 - [http://localhost:3000](http://localhost:3000)
+
+## GitHub Actions
+
+Workflows:
+
+- `.github/workflows/ci.yml`
+- `.github/workflows/pages.yml`
+
+`ci.yml` runs:
+
+- backend Python compile checks
+- frontend production build
+
+`pages.yml` deploys the frontend to GitHub Pages.
+
+Before using the Pages workflow, set this repository secret:
+
+- `REACT_APP_API_URL`
+
+This should point to your deployed backend URL, for example:
+
+```text
+https://tailor-my-resume-api.onrender.com
+```
 
 ## Main API
 

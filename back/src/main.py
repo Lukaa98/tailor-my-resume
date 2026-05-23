@@ -29,6 +29,11 @@ def health():
     return {"status": "ok"}
 
 
+@app.head("/")
+def health_head():
+    return
+
+
 def format_numbered_lines(text: str) -> str:
     return "\n".join(
         f"{index:03d}: {line}"

@@ -6,6 +6,7 @@ from src.config import get_settings
 from src.services.pdf_parser import extract_resume_with_layout
 from src.services.layout_text_extractor import extract_readable_text
 from src.services.section_parser import extract_sections
+from src.services.experience_parser import extract_section_entries
 from src.services.pdf_exporter import export_resume_pdf
 
 import logging
@@ -55,6 +56,10 @@ def build_resume_sections(payload: dict) -> dict:
         raise ValueError("Missing text")
 
     semantic = extract_sections(payload["text"])
+    semantic["sections"] = extract_section_entries(
+        payload["text"],
+        semantic.get("sections", []),
+    )
     logger.info("Resume section analysis result: %s", semantic)
     return {
         "semantic": semantic,

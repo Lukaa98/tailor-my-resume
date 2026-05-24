@@ -19,6 +19,7 @@ export default function ResumeEditor() {
   const [lineMap, setLineMap] = useState([]);
   const [highlightedIds, setHighlightedIds] = useState([]);
   const [activeSectionIndex, setActiveSectionIndex] = useState(null);
+  const [activeEntryKey, setActiveEntryKey] = useState(null);
   const [error, setError] = useState('');
 
   const sections = semantic?.sections || [];
@@ -39,6 +40,7 @@ export default function ResumeEditor() {
     setLineMap([]);
     setHighlightedIds([]);
     setActiveSectionIndex(null);
+    setActiveEntryKey(null);
 
     console.log('Uploading resume...');
 
@@ -58,6 +60,9 @@ export default function ResumeEditor() {
   const getSectionIds = (section) =>
     lineMap.slice(section.start_line, section.end_line + 1).flat();
 
+  const getEntryIds = (entry) =>
+    lineMap.slice(entry.start_line, entry.end_line + 1).flat();
+
   const previewSection = (index) => {
     const section = sections[index];
     if (!section) return;
@@ -65,6 +70,13 @@ export default function ResumeEditor() {
   };
 
   const clearPreview = () => {
+    if (activeEntryKey) {
+      const [sectionIndex, entryIndex] = activeEntryKey.split(':').map(Number);
+      const activeEntry = sections[sectionIndex]?.entries?.[entryIndex];
+      setHighlightedIds(activeEntry ? getEntryIds(activeEntry) : []);
+      return;
+    }
+
     if (activeSectionIndex === null) {
       setHighlightedIds([]);
       return;
@@ -77,12 +89,37 @@ export default function ResumeEditor() {
   const toggleSectionSelection = (index) => {
     if (activeSectionIndex === index) {
       setActiveSectionIndex(null);
+      setActiveEntryKey(null);
       setHighlightedIds([]);
       return;
     }
 
     setActiveSectionIndex(index);
+    setActiveEntryKey(null);
     previewSection(index);
+  };
+
+  const previewEntry = (sectionIndex, entryIndex) => {
+    const entry = sections[sectionIndex]?.entries?.[entryIndex];
+    if (!entry) return;
+    setHighlightedIds(getEntryIds(entry));
+  };
+
+  const toggleEntrySelection = (sectionIndex, entryIndex) => {
+    const nextKey = `${sectionIndex}:${entryIndex}`;
+    if (activeEntryKey === nextKey) {
+      setActiveEntryKey(null);
+      if (activeSectionIndex !== null) {
+        previewSection(activeSectionIndex);
+      } else {
+        setHighlightedIds([]);
+      }
+      return;
+    }
+
+    setActiveSectionIndex(sectionIndex);
+    setActiveEntryKey(nextKey);
+    previewEntry(sectionIndex, entryIndex);
   };
 
   return (
@@ -176,6 +213,49 @@ export default function ResumeEditor() {
                   {formatSectionType(section.type)} | lines {section.start_line}-
                   {section.end_line}
                 </Typography>
+                {!!section.entries?.length && (
+                  <Stack spacing={1} sx={{ mt: 1.5 }}>
+                    {section.entries.map((entry, entryIndex) => (
+                      <Box
+                        key={`${section.index}-${entryIndex}`}
+                        sx={{
+                          p: 1,
+                          borderRadius: 1,
+                          cursor: 'pointer',
+                          bgcolor:
+                            activeEntryKey === `${section.index}:${entryIndex}`
+                              ? 'rgba(25, 118, 210, 0.12)'
+                              : 'rgba(25, 118, 210, 0.04)',
+                        }}
+                        onMouseEnter={() => previewEntry(section.index, entryIndex)}
+                        onMouseLeave={clearPreview}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          toggleEntrySelection(section.index, entryIndex);
+                        }}
+                      >
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {entry.header}
+                        </Typography>
+                        {entry.title && (
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ display: 'block', mb: entry.bullets?.length ? 0.75 : 0 }}
+                          >
+                            {entry.title}
+                          </Typography>
+                        )}
+                        {!!entry.bullets?.length && (
+                          <Typography variant="caption" color="text.secondary">
+                            {entry.bullets.length} bullet
+                            {entry.bullets.length === 1 ? '' : 's'}
+                          </Typography>
+                        )}
+                      </Box>
+                    ))}
+                  </Stack>
+                )}
               </Paper>
             ))}
           </Stack>
